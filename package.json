@@ -1,0 +1,105 @@
+{
+  "name": "dsh-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.28.2",
+  "engines": {
+    "node": ">=22.6.0"
+  },
+  "description": "Electron desktop entry for the existing DeepSeek Harness web service",
+  "scripts": {
+    "build:bridge": "node scripts/build-bridge.mjs",
+    "check:versions": "node scripts/check-versions.mjs",
+    "typecheck": "tsc --noEmit",
+    "build": "bash build.sh",
+    "test": "bash test.sh",
+    "build:electron": "node scripts/build-electron.mjs",
+    "start": "pnpm build:bridge && pnpm build:electron && electron ."
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "electron": "45.2.2",
+    "electron-builder": "26.18.0",
+    "esbuild": "^0.28.0",
+    "typescript": "^6.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "esbuild"
+    ]
+  },
+  "main": "build/electron/main.cjs",
+  "build": {
+    "appId": "local.dsh.desktop",
+    "productName": "DeepSeek Harness",
+    "executableName": "dsh-desktop",
+    "artifactName": "dsh-desktop_${version}_${arch}.${ext}",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "publish": null,
+    "files": [
+      "build/electron/**/*",
+      "build/bridge.js",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "assets/fonts",
+        "to": "fonts"
+      },
+      {
+        "from": "assets/icon.png",
+        "to": "icon.png"
+      },
+      {
+        "from": "assets/LICENSE-HarmonyOS-Sans.txt",
+        "to": "LICENSE-HarmonyOS-Sans.txt"
+      }
+    ],
+    "asar": true,
+    "compression": "maximum",
+    "electronLanguages": [
+      "en-US",
+      "zh-CN"
+    ],
+    "npmRebuild": false,
+    "linux": {
+      "syncDesktopName": true,
+      "target": [
+        "deb"
+      ],
+      "category": "Development",
+      "icon": "assets/icon.png",
+      "synopsis": "DeepSeek Harness desktop",
+      "description": "Chromium desktop window for the existing DeepSeek Harness web service."
+    },
+    "deb": {
+      "depends": [
+        "libgtk-3-0 | libgtk-3-0t64",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0 | libatspi2.0-0t64",
+        "libuuid1",
+        "libsecret-1-0",
+        "libgbm1",
+        "libasound2 | libasound2t64"
+      ]
+    }
+  },
+  "author": "DeepSeek Harness Desktop <noreply@localhost>",
+  "homepage": "https://github.com/kaus-io/dsh-desktop",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kaus-io/dsh-desktop.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kaus-io/dsh-desktop/issues"
+  },
+  "desktopName": "dsh-desktop.desktop"
+}

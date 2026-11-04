@@ -1,0 +1,71 @@
+name: release
+
+# 发布 GitHub Release 时校验 tag 与清单版本，跑同一套测试并打包，把 .deb 传回该 Release。
+# Publishing a GitHub Release validates its tag against the manifest version, runs the
+# same checks, builds the .deb and uploads it to that Release. This workflow does not
+# publish to npm and never bumps the version.
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Versions agree
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: node scripts/check-versions.mjs --tag "$TAG"
+
+      - name: Refuse to republish an existing version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          existing="$(gh release view "$TAG" --json assets --jq '.assets[].name' | grep -E '^dsh-desktop_.+\.deb$' || true)"
+          if [ -n "$existing" ]; then
+            echo "::error::release $TAG already has $existing; bump the version instead of re-uploading it."
+            exit 1
+          fi
+
+      - name: Cache Electron
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+          key: electron-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            electron-${{ runner.os }}-
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck and tests
+        run: ./test.sh
+
+      - name: Build .deb
+        run: ./build.sh
+
+      - name: Upload .deb to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" dist-electron/*.deb
