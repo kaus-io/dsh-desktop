@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { versionProblems } from '../scripts/check-versions.mjs';
+import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { readVersionInputs, versionProblems } from '../scripts/check-versions.mjs';
 
 const VERSION = '1.0.0';
 
@@ -16,6 +19,29 @@ const clean = {
   ].join('\n'),
   changelog: `# 更新日志\n\n## ${VERSION}\n\n- 首个版本\n`,
 };
+
+describe('readVersionInputs', () => {
+  it('checks artifact versions in the separate usage README', async () => {
+    const root = await mkdtemp(join(await realpath(tmpdir()), 'dsh-desktop-versions-'));
+    try {
+      await mkdir(join(root, 'docs'));
+      await Promise.all([
+        writeFile(join(root, 'package.json'), JSON.stringify({ version: VERSION })),
+        writeFile(join(root, 'README.md'), '### dsh-desktop\n\n[传送门](<docs/README.md>)。\n'),
+        writeFile(join(root, 'docs', 'README.md'), `dsh-desktop_${VERSION}_amd64.deb\n`),
+        writeFile(join(root, 'CHANGELOG.md'), clean.changelog),
+      ]);
+      const inputs = await readVersionInputs(root);
+      assert.match(inputs.readme, /### dsh-desktop/);
+      assert.deepEqual(versionProblems(inputs), []);
+      await writeFile(join(root, 'docs', 'README.md'), 'dsh-desktop_0.9.0_amd64.deb\n');
+      assert.match(versionProblems(await readVersionInputs(root))[0], /README\.md pins "0\.9\.0"/);
+    } finally {
+      assert.equal(await realpath(root), root);
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+});
 
 describe('versionProblems', () => {
   it('accepts manifest, README, and CHANGELOG in agreement', () => {
