@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-  childEnvironment, isPasteShortcut, mimeForPath, parseCli, parseUriList, safeName, usage, validateHttpUrl,
-} from '../src/electron/pure.ts';
+import { childEnvironment, parseCli, usage, validateHttpUrl } from '../src/electron/pure.ts';
 
 test('CLI accepts the public desktop flags and rejects extras', () => {
   assert.deepEqual(parseCli([]), { mode: 'open' });
@@ -18,32 +16,6 @@ test('CLI accepts the public desktop flags and rejects extras', () => {
   assert.throws(() => parseCli(['--login', 'file:///tmp/x']));
   assert.throws(() => parseCli(['--login', 'http://user:pass@127.0.0.1/']));
   assert.throws(() => parseCli(['--unknown']));
-});
-
-test('URI lists accept local file URIs only and deduplicate', () => {
-  assert.deepEqual(parseUriList([
-    '# comment',
-    'file:///tmp/a.png',
-    'file:///tmp/a.png',
-    'https://example.com/x',
-    'file:///tmp/b.txt',
-    '',
-  ].join('\r\n')), ['/tmp/a.png', '/tmp/b.txt']);
-});
-
-test('MIME and safe names are deterministic', () => {
-  assert.equal(mimeForPath('/tmp/x.PNG'), 'image/png');
-  assert.equal(mimeForPath('/tmp/x.unknown'), 'application/octet-stream');
-  assert.equal(safeName('/tmp/a\u0000b.png'), 'ab.png');
-  assert.equal(safeName('/tmp/'), 'tmp');
-});
-
-test('paste shortcut requires Ctrl/Cmd+V without Alt/Shift', () => {
-  assert.equal(isPasteShortcut({ type: 'keyDown', key: 'v', control: true }), true);
-  assert.equal(isPasteShortcut({ type: 'keyDown', key: 'V', meta: true }), true);
-  assert.equal(isPasteShortcut({ type: 'keyUp', key: 'v', control: true }), false);
-  assert.equal(isPasteShortcut({ type: 'keyDown', key: 'v', control: true, shift: true }), false);
-  assert.equal(isPasteShortcut({ type: 'keyDown', key: 'v', control: true, alt: true }), false);
 });
 
 test('help text uses the package version and lists the public flags', () => {

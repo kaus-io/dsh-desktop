@@ -13,7 +13,7 @@ git clone https://github.com/kaus-io/dsh-desktop.git
 cd dsh-desktop
 pnpm install --frozen-lockfile
 ./build.sh
-sudo apt install "./dist-electron/dsh-desktop_1.0.0_$(dpkg --print-architecture).deb"
+sudo apt install "./dist-electron/dsh-desktop_1.0.1_$(dpkg --print-architecture).deb"
 ```
 
 安装后从应用菜单打开 **DeepSeek Harness**，或运行 `dsh-desktop`。需要桌面快捷方式时，以当前用户执行：
@@ -52,10 +52,10 @@ dsh-desktop --login '<dsh web 输出的登录地址>'
 
 ## 文件输入与限制
 
-- 将文件拖入当前会话的附件区域；粘贴图片或文件前，先聚焦会话输入框。
-- 单次最多 **20 个文件、合计 16 MiB**；目录、空文件和不可读文件不接收，超限项会被跳过。
-- 普通文字仍使用原生粘贴；文件管理器复制是否可用取决于桌面环境，不生效时优先尝试拖入。
-- 这是现有 DSH 网页的桌面入口，网页附件接口变化可能影响拖放与粘贴。
+- 粘贴、拖放和输入法全部由 Chromium 原生处理；把图片/文件拖入当前会话的附件区域即可添加附件。
+- 截图、文本用普通 `Ctrl/Cmd+V` 粘贴；从网页复制的图片按浏览器原生行为处理。
+- 文件管理器里复制的**本地文件**粘贴到输入框只会得到路径文本（浏览器拿不到文件字节），请改用拖入。
+- 这是现有 DSH 网页的桌面入口；没有额外的页面脚本注入或剪贴板读取。
 - 当前没有自动更新；跨源链接交给系统浏览器打开。
 
 ## 数据与排查
@@ -74,7 +74,7 @@ pnpm start
 ./build.sh
 ```
 
-分别用于开发启动、类型检查与自动化测试、生成 `.deb`。自动化测试不打开真实窗口，原生剪贴板与拖放仍需在真实桌面会话验证。
+分别用于开发启动、类型检查与自动化测试、生成 `.deb`。自动化测试不打开真实窗口；输入法、粘贴与拖放仍需在真实桌面会话验证。
 
 构建与测试入口见 [build.sh](<../build.sh>)、[test.sh](<../test.sh>)；更改版本相关文档后可用 `pnpm check:versions` 检查[首页](<../README.md>)、[使用文档](<README.md>)与清单版本的一致性。
 

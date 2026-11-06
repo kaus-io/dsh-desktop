@@ -1,9 +1,10 @@
 import { build } from 'esbuild';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+await rm(path.join(root, 'build', 'electron'), { recursive: true, force: true });
 await mkdir(path.join(root, 'build', 'electron'), { recursive: true });
 
 const shared = {
@@ -23,10 +24,4 @@ await build({
   outfile: 'build/electron/main.cjs',
 });
 
-await build({
-  ...shared,
-  entryPoints: ['src/electron/preload.ts'],
-  outfile: 'build/electron/preload.cjs',
-});
-
-console.log('Built Electron main/preload');
+console.log('Built Electron main');

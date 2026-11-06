@@ -1,6 +1,6 @@
 {
   "name": "dsh-desktop",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.28.2",
@@ -9,13 +9,12 @@
   },
   "description": "Electron desktop entry for the existing DeepSeek Harness web service",
   "scripts": {
-    "build:bridge": "node scripts/build-bridge.mjs",
     "check:versions": "node scripts/check-versions.mjs",
     "typecheck": "tsc --noEmit",
     "build": "bash build.sh",
     "test": "bash test.sh",
     "build:electron": "node scripts/build-electron.mjs",
-    "start": "pnpm build:bridge && pnpm build:electron && electron ."
+    "start": "pnpm build:electron && electron ."
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
@@ -42,7 +41,6 @@
     "publish": null,
     "files": [
       "build/electron/**/*",
-      "build/bridge.js",
       "package.json"
     ],
     "extraResources": [

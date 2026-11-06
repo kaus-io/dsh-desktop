@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 构建 Electron 主进程/输入桥并打出 .deb。 / Build Electron main/preload/bridge and a .deb.
+# 构建 Electron 主进程并打出 .deb。 / Build the Electron main process and a .deb.
 set -euo pipefail
 umask 022
 ROOT="$(cd "$(dirname "$0")" && pwd -P)"
@@ -8,7 +8,6 @@ cd "$ROOT"
 command -v pnpm >/dev/null || { echo 'missing build tool: pnpm' >&2; exit 1; }
 [ -x node_modules/.bin/electron-builder ] || { echo 'run pnpm install (with electron/electron-builder) first' >&2; exit 1; }
 
-pnpm build:bridge
 pnpm build:electron
 pnpm typecheck
 

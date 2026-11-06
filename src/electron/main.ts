@@ -1,11 +1,16 @@
-/** Electron 主进程：Chromium 窗口 + 原生输入桥 + 轻量 dsh web 启动器。 / Electron main: Chromium window, native intake bridge and a light dsh web launcher. */
+/**
+ * Electron 主进程：Chromium 窗口 + 轻量 dsh web 启动器。
+ * 粘贴、拖放、输入法全部交给 Chromium；桌面壳不注入脚本、不拦截输入事件。
+ *
+ * Electron main: a Chromium window plus a light dsh web launcher. Paste, drop
+ * and IME stay native; the shell injects no page script and intercepts no input.
+ */
 
-import { app, BrowserWindow, Menu, dialog, ipcMain, session, shell } from 'electron';
+import { app, BrowserWindow, Menu, dialog, session, shell } from 'electron';
 import type { MenuItemConstructorOptions } from 'electron';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { attachPaste, deliverDrop, deliverPaste, injectBridge } from './intake';
 import { originOf, parseCli, usage } from './pure';
 import type { Cli } from './pure';
 import { installShortcut, resolveUrl, status } from './service';
@@ -69,10 +74,6 @@ function iconPath(): string {
     : path.join(app.getAppPath(), 'assets', 'icon.png');
 }
 
-function bridgeSource(): string {
-  return fs.readFileSync(path.join(app.getAppPath(), 'build', 'bridge.js'), 'utf8');
-}
-
 function fail(error: unknown): void {
   const message = error instanceof Error ? error.message : String(error);
   dialog.showErrorBox(APP_NAME, message);
@@ -91,7 +92,6 @@ function setupPermissions(): void {
 
 function createWindow(url: string): BrowserWindow {
   const origin = originOf(url);
-  const bridge = bridgeSource();
   const window = new BrowserWindow({
     width: 1440,
     height: 900,
@@ -103,14 +103,12 @@ function createWindow(url: string): BrowserWindow {
     backgroundColor: '#1e1e1e',
     autoHideMenuBar: true,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
       webSecurity: true,
       spellcheck: false,
       backgroundThrottling: false,
-      additionalArguments: [`--dsh-origin=${origin}`],
       devTools: !app.isPackaged,
     },
   });
@@ -135,19 +133,12 @@ function createWindow(url: string): BrowserWindow {
   });
 
   contents.on('dom-ready', () => {
-    void injectBridge(contents, origin, bridge).catch(error => {
-      console.error('bridge injection failed:', error instanceof Error ? error.message : String(error));
-    });
     void contents.insertCSS(FONT_CSS, { cssOrigin: 'user' }).catch(() => {});
   });
 
-  attachPaste(contents);
-
   contents.on('context-menu', (_event, params) => {
     const template: MenuItemConstructorOptions[] = [];
-    if (params.isEditable) {
-      template.push({ label: '粘贴 / Paste', click: () => { void deliverPaste(contents); } });
-    }
+    if (params.isEditable) template.push({ role: 'paste', label: '粘贴 / Paste' });
     if (params.editFlags.canCopy) template.push({ role: 'copy', label: '复制 / Copy' });
     template.push({ role: 'selectAll', label: '全选 / Select All' });
     Menu.buildFromTemplate(template).popup({ window });
@@ -163,26 +154,16 @@ function createWindow(url: string): BrowserWindow {
     dialog.showErrorBox(APP_NAME, `渲染进程退出 / Renderer exited: ${details.reason}`);
   });
 
-  // 仅用于无显示环境冒烟：确认页面与 bridge 都已就绪后退出。 / Headless smoke only.
+  // 仅用于无显示环境冒烟：页面就绪后退出。 / Headless smoke only.
   contents.on('did-finish-load', () => {
     if (process.env.DSH_DESKTOP_SMOKE !== '1') return;
-    void contents.executeJavaScript('Boolean(window.__dshNativeIntake)').then(installed => {
-      console.log(`SMOKE_BRIDGE=${String(installed)}`);
+    void contents.executeJavaScript('document.readyState').then(state => {
+      console.log(`SMOKE_READY=${String(state)}`);
       setTimeout(() => { app.quit(); }, 200);
     }).catch(error => {
       console.error('SMOKE_ERROR', error instanceof Error ? error.message : String(error));
       app.exit(2);
     });
-  });
-
-  ipcMain.on('dsh:intake-drop', (event, payload: unknown) => {
-    if (event.sender !== contents || event.senderFrame !== contents.mainFrame) return;
-    try {
-      if (new URL(event.senderFrame.url).origin !== origin) return;
-    } catch {
-      return;
-    }
-    void deliverDrop(contents, payload);
   });
 
   window.once('ready-to-show', () => { window.show(); });
